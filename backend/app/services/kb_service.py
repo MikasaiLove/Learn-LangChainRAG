@@ -73,6 +73,7 @@ async def upload_document(db: AsyncSession, file: UploadFile, user_id: str) -> d
     # 创建文档记录
     doc = Document(
         filename=filename,
+        stored_name=stored_name,
         file_type=ext,
         file_size=file_size,
         status="pending",
@@ -112,12 +113,19 @@ async def delete_document(db: AsyncSession, doc_id: str) -> bool:
     from app.services.document_processor import delete_document_vectors
     await delete_document_vectors(doc_id)
 
-    # 删除本地文件
+    # 删除本地文件（精确匹配 stored_name）
     try:
-        settings_obj = get_settings()
-        for f in os.listdir(settings_obj.upload_dir):
-            if doc_id[:8] in f or (doc.filename and doc.filename in f):
-                os.remove(os.path.join(settings_obj.upload_dir, f))
+        if doc.stored_name:
+            file_path = os.path.join(get_settings().upload_dir, doc.stored_name)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        else:
+            # 兼容旧数据：没有 stored_name 时回退到模糊匹配
+            settings_obj = get_settings()
+            for f in os.listdir(settings_obj.upload_dir):
+                if f.endswith(f"_{doc.filename}"):
+                    os.remove(os.path.join(settings_obj.upload_dir, f))
+                    break
     except Exception:
         pass
 

@@ -11,6 +11,7 @@ class Document(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     filename: Mapped[str] = mapped_column(String(500), nullable=False)
+    stored_name: Mapped[str | None] = mapped_column(String(500), nullable=True)  # 磁盘上的完整文件名
     file_type: Mapped[str] = mapped_column(String(20), nullable=False)  # pdf|docx|txt|md|csv|html
     file_size: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")  # pending|processing|done|fail
@@ -29,6 +30,7 @@ class Document(Base):
         return {
             "id": self.id,
             "filename": self.filename,
+            "stored_name": self.stored_name,
             "file_type": self.file_type,
             "file_size": self.file_size,
             "status": self.status,
