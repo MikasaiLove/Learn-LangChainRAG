@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import subprocess; out=subprocess.check_output\\('netstat -ano',shell=True,text=True\\); [subprocess.run\\(f'taskkill /F /T /PID {l.strip\\(\\).split\\(\\)[-1]}',shell=True,capture_output=True\\) for l in out.split\\('\\\\n'\\) if ':8000' in l and 'LISTENING' in l]\")",
+      "Bash(nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-use-colors --no-access-log)",
+      "Bash(ls -laR \"D:\\\\\\\\LangChainRAG项目\\\\\\\\.claude\")",
+      "Edit(/.claude/skills/comments-check/**)",
+      "Edit(/.claude/skills/security-audit/**)",
+      "Bash(git rm *)"
+    ]
+  }
+}
