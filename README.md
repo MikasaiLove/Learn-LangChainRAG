@@ -126,12 +126,99 @@ Learn-LangChainRAG/
 
 ## 运行测试
 
+### 单元测试
+
 ```bash
-# 后端
+# 后端 (pytest)
 cd backend && pytest -v
 
-# 前端
+# 前端 (vitest)
 cd frontend && npm test
+```
+
+### 压力测试 (Locust)
+
+模拟高并发场景，验证系统吞吐与瓶颈。
+
+```bash
+pip install locust
+cd backend/tests/stress
+```
+
+**分阶段运行：**
+
+| 阶段 | 场景 | 命令 |
+|------|------|------|
+| Phase 1 | Health Check 基准 | `export LOCUST_PHASE=health && locust -f locustfile.py --headless --users 100 --spawn-rate 10 --run-time 2m --host http://localhost:8000` |
+| Phase 2 | 认证 + 会话列表 | `export LOCUST_PHASE=auth && locust -f locustfile.py --headless --users 100 --spawn-rate 10 --run-time 3m --host http://localhost:8000` |
+| Phase 3 | 知识库管理 | `export LOCUST_PHASE=kb && locust -f locustfile.py --headless --users 50 --spawn-rate 5 --run-time 2m --host http://localhost:8000` |
+| Phase 4 | RAG 对话 (Mock LLM) | `export LOCUST_PHASE=chat && locust -f locustfile.py --headless --users 100 --spawn-rate 10 --run-time 5m --host http://localhost:8000` |
+| Phase 5 | 真实 LLM (少量) | `export LOCUST_PHASE=chat_real && locust -f locustfile.py --headless --users 5 --spawn-rate 2 --run-time 2m --host http://localhost:8000` |
+
+**Web UI 模式（实时图表）：**
+
+```bash
+export LOCUST_PHASE=chat && locust -f locustfile.py --host http://localhost:8000
+# 打开 http://localhost:8089 查看实时面板
+```
+
+**Mock 模式（不消耗 API 额度）：**
+
+```bash
+export STRESS_TEST_MOCK_LLM=true
+export DATABASE_URL="sqlite+aiosqlite:///./data_stress_test/app.db"
+export CHROMA_PERSIST_DIR="./data_stress_test/chroma"
+python scripts/seed_test_data.py          # 生成 100 用户 + 300 会话
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 --limit-concurrency 200
+```
+
+### 压力测试结果
+
+| Phase | 场景 | 并发 | 请求数 | 失败 | 平均延迟 | P95 | 结论 |
+|-------|------|:--:|------|:--:|------|------|------|
+| 1 | Health Check | 100 | 36,810 | 0 | 8ms | 7ms | ✅ FastAPI 层无瓶颈 |
+| 4 | RAG Mock (18并发) | 18 | 13 | 0 | 6,078ms | 8,100ms | ✅ 稳定，零失败 |
+| 5 | 真实 LLM | 5 | 6 | 0 | 5,540ms | 7,400ms | ✅ 百炼免费额度够用 |
+
+**发现的瓶颈：**
+1. **首字延迟偏高** (5-6s) — Mock 和真实 LLM 接近，说明瓶颈在 Chroma 检索 + SQLite 写入，不在 LLM
+2. **SQLite 写锁** — 预计 20-30 并发写时将成为首个崩溃点
+3. **bcrypt CPU 消耗** — 登录时 bcrypt.checkpw 约 250ms/次，高并发会饱和所有核心
+
+## 项目结构
+
+```
+Learn-LangChainRAG/
+├── backend/
+│   ├── app/
+│   │   ├── api/           # FastAPI 路由
+│   │   ├── core/          # 数据库 / 安全 / 日志
+│   │   ├── models/        # SQLAlchemy 模型
+│   │   ├── schemas/       # Pydantic 校验
+│   │   ├── services/      # 业务逻辑
+│   │   ├── rag/           # RAG 管道 (含 Mock LLM 开关)
+│   │   └── main.py        # 入口
+│   ├── scripts/           # 工具脚本 (种子数据等)
+│   ├── tests/
+│   │   ├── stress/        # Locust 压力测试
+│   │   │   ├── locustfile.py
+│   │   │   ├── scenarios/ # 5 阶段场景
+│   │   │   └── helpers/   # SSE 客户端 / Token 缓存
+│   │   ├── test_config.py
+│   │   ├── test_security.py
+│   │   └── test_prompts.py
+│   └── requirements.txt
+├── frontend/
+│   ├── src/
+│   │   ├── api/           # Axios 请求封装
+│   │   ├── pages/         # 页面组件
+│   │   ├── stores/        # Zustand 状态
+│   │   └── __tests__/     # Vitest 单元测试
+│   └── package.json
+├── .claude/               # Claude Code 技能与 Agent
+├── start.bat
+├── stop.bat
+└── view-log.bat
 ```
 
 ## License

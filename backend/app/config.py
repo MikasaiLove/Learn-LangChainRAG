@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     # 算法
     algorithm: str = "HS256"
 
+    # 压力测试
+    stress_test_mock_llm: bool = False
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

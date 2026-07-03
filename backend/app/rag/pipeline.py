@@ -134,10 +134,24 @@ class RAGPipeline:
 
             # 3. 流式生成回答
             full_response = ""
-            async for chunk in self.llm.astream(messages):
-                if chunk.content:
-                    full_response += chunk.content
-                    yield {"type": "token", "content": chunk.content}
+
+            if settings.stress_test_mock_llm:
+                logger.info("STRESS TEST MOCK: using simulated LLM response")
+                mock_text = (
+                    "基于您提供的参考资料，以下是相关商品信息的总结：\n\n"
+                    "该商品具备多项竞争优势，包括优质的材质选择和精细的工艺制作。"
+                    "价格方面处于合理的市场定位区间，适合目标消费群体。\n\n"
+                    "如需了解更多详细规格或具体参数，建议查阅知识库中的完整文档。"
+                )
+                for char in mock_text:
+                    await asyncio.sleep(0.03)  # 模拟 LLM 流式输出延迟
+                    full_response += char
+                    yield {"type": "token", "content": char}
+            else:
+                async for chunk in self.llm.astream(messages):
+                    if chunk.content:
+                        full_response += chunk.content
+                        yield {"type": "token", "content": chunk.content}
 
             output_tokens = estimate_tokens(full_response)
 

@@ -7,7 +7,31 @@
       "Bash(ls -laR \"D:\\\\\\\\LangChainRAG项目\\\\\\\\.claude\")",
       "Edit(/.claude/skills/comments-check/**)",
       "Edit(/.claude/skills/security-audit/**)",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(git fetch *)",
+      "Bash(git pull *)",
+      "Bash(python scripts/seed_test_data.py)",
+      "Bash(python -c \"import locustfile; print\\('Locustfile OK'\\)\")",
+      "Bash(set STRESS_TEST_MOCK_LLM=true)",
+      "Bash(set DATABASE_URL=sqlite+aiosqlite:///./data_stress_test/app.db)",
+      "Bash(set CHROMA_PERSIST_DIR=./data_stress_test/chroma)",
+      "Bash(set UPLOAD_DIR=./data_stress_test/uploads)",
+      "Bash(python -c \"from app.config import get_settings; s = get_settings\\(\\); print\\(f'MOCK={s.stress_test_mock_llm} DB={s.database_url} CHROMA={s.chroma_persist_dir}'\\)\")",
+      "Bash(export STRESS_TEST_MOCK_LLM=true)",
+      "Bash(export DATABASE_URL=\"sqlite+aiosqlite:///./data_stress_test/app.db\")",
+      "Bash(export CHROMA_PERSIST_DIR=\"./data_stress_test/chroma\")",
+      "Bash(export UPLOAD_DIR=\"./data_stress_test/uploads\")",
+      "Bash(nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 --limit-concurrency 200 --timeout-keep-alive 60 --no-use-colors)",
+      "Bash(mkdir -p reports)",
+      "Bash(locust -f locustfile.py --headless --users 100 --spawn-rate 10 --run-time 2m --host http://localhost:8000 --csv reports/phase1_health --only-class HealthCheckUser)",
+      "Bash(locust -f locustfile.py --headless --users 100 --spawn-rate 10 --run-time 2m --host http://localhost:8000 --csv reports/phase1_health --tags health)",
+      "Bash(export LOCUST_PHASE=health)",
+      "Bash(locust -f locustfile.py --headless --users 100 --spawn-rate 10 --run-time 2m --host http://localhost:8000 --csv reports/phase1_health)",
+      "Bash(export LOCUST_PHASE=chat)",
+      "Bash(nohup locust -f locustfile.py --host http://localhost:8000)",
+      "Bash(echo \"Locust PID: $!\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8089)",
+      "Bash(taskkill /F /IM python.exe /T)"
     ]
   }
 }

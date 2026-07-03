@@ -22,8 +22,15 @@ Thumbs.db
 
 # Project data (local)
 backend/data/
+backend/data_stress_test/
 backend/logs/
+backend/backend.log
 backend/.env
+
+# Stress test artifacts
+backend/tests/stress/reports/
+backend/tests/stress/*.log
+backend/tests/stress/locust_*.log
 
 # Environment
 .env
