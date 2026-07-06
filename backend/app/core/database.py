@@ -9,7 +9,9 @@ engine = create_async_engine(
     settings.database_url,
     echo=False,
     pool_size=20,
-    max_overflow=10,
+    max_overflow=30,
+    pool_recycle=3600,    # MySQL 默认 8h 断连，每小时回收防"gone away"
+    pool_pre_ping=True,   # 使用前先 ping 检测连接是否存活
 )
 
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

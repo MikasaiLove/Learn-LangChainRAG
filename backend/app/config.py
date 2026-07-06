@@ -10,8 +10,8 @@ class Settings(BaseSettings):
     llm_model: str = "qwen-plus"
     embedding_model: str = "text-embedding-v3"
 
-    # 数据库
-    database_url: str = "sqlite+aiosqlite:///./data/app.db"
+    # 数据库（MySQL）
+    database_url: str = "mysql+aiomysql://root:123456@localhost:3306/langchain_rag"
 
     # JWT
     secret_key: str = "change-me-in-production"

@@ -10,7 +10,8 @@
 | **Embedding** | 百炼 `text-embedding-v3` | 向量化 |
 | **RAG 框架** | LangChain + LangChain Community | 检索增强生成 |
 | **向量数据库** | Chroma | 嵌入式向量存储 |
-| **后端** | FastAPI + SQLAlchemy 2.0 + aiosqlite | REST + SSE 流式 |
+| **后端** | FastAPI + SQLAlchemy 2.0 + aiomysql | REST + SSE 流式 |
+| **数据库** | MySQL 8.0 | 支持高并发读写 |
 | **前端** | React 19 + TypeScript + Vite + Ant Design 5 | SPA |
 | **认证** | JWT 双 Token（access + refresh）| bcrypt 密码哈希 |
 
@@ -30,6 +31,7 @@
 
 - Python 3.11+
 - Node.js 20+
+- MySQL 8.0+
 - 阿里云百炼 API Key ([DashScope](https://dashscope.console.aliyun.com/))
 
 ### 1. 配置环境
@@ -38,9 +40,28 @@
 # 克隆项目
 git clone https://github.com/MikasaiLove/Learn-LangChainRAG.git
 cd Learn-LangChainRAG
+```
 
-# 创建 .env 文件
-echo DASHSCOPE_API_KEY=你的百炼API密钥 > .env
+**MySQL 数据库：**
+
+```sql
+-- 在 Navicat 或 MySQL 命令行中创建数据库
+CREATE DATABASE IF NOT EXISTS langchain_rag CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+**配置 .env 文件：**
+
+```bash
+cd backend
+cp .env.example .env   # 如果存在模板文件
+# 编辑 .env，填入你的 API Key 和 MySQL 连接信息
+```
+
+`.env` 关键配置：
+
+```ini
+DASHSCOPE_API_KEY=你的百炼API密钥
+DATABASE_URL=mysql+aiomysql://root:你的密码@localhost:3306/langchain_rag
 ```
 
 ### 2. 安装依赖
@@ -166,8 +187,10 @@ export LOCUST_PHASE=chat && locust -f locustfile.py --host http://localhost:8000
 
 ```bash
 export STRESS_TEST_MOCK_LLM=true
-export DATABASE_URL="sqlite+aiosqlite:///./data_stress_test/app.db"
+# 压力测试使用独立数据库，避免污染正式数据
+export DATABASE_URL="mysql+aiomysql://root:密码@localhost:3306/langchain_rag_stress_test"
 export CHROMA_PERSIST_DIR="./data_stress_test/chroma"
+# 先在 Navicat 中创建 langchain_rag_stress_test 库，再运行以下命令
 python scripts/seed_test_data.py          # 生成 100 用户 + 300 会话
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 --limit-concurrency 200
 ```
@@ -181,9 +204,11 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 --limit-concurrency 
 | 5 | 真实 LLM | 5 | 6 | 0 | 5,540ms | 7,400ms | ✅ 百炼免费额度够用 |
 
 **发现的瓶颈：**
-1. **首字延迟偏高** (5-6s) — Mock 和真实 LLM 接近，说明瓶颈在 Chroma 检索 + SQLite 写入，不在 LLM
-2. **SQLite 写锁** — 预计 20-30 并发写时将成为首个崩溃点
-3. **bcrypt CPU 消耗** — 登录时 bcrypt.checkpw 约 250ms/次，高并发会饱和所有核心
+1. **首字延迟偏高** (5-6s) — Mock 和真实 LLM 接近，说明瓶颈在 Chroma 检索 + DB 写入，不在 LLM
+2. **bcrypt CPU 消耗** — 登录时 bcrypt.checkpw 约 250ms/次，高并发会饱和所有核心
+3. **Chroma 线程池** — 嵌入式向量检索受限于 `asyncio.to_thread` 默认线程数
+
+> 已从 SQLite 迁移到 MySQL 解决了单写者锁问题，高并发写入不再排队阻塞。
 
 ## 项目结构
 
